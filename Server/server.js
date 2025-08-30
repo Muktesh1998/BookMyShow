@@ -12,6 +12,7 @@ const errorHandler = require("./middlewares/errorHandler");
 const { validateJWTToken } = require("./middlewares/authorizationMiddleware");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
+const path = require("path")
 
 
 const apiLimited = rateLimit({
@@ -19,6 +20,9 @@ const apiLimited = rateLimit({
   max: 100,
   message: "Too Many Request from this IP, please try again after 15 mins",
 });
+
+const clientBuildPath = path.join(__dirname, "../Client/dist");
+app.use(express.static(clientBuildPath));
 
 connectDB();
 app.use(helmet());
