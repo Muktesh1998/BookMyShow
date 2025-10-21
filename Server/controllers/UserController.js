@@ -187,68 +187,6 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-// Two-Factor Authentication (Email OTP)
-const login2faInit = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const user = await userModel.findOne({ email });
-    if (!user) {
-      return res.send({ success: false, message: "User does not exist. Please register" });
-    }
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return res.send({ success: false, message: "please enter valid password" });
-    }
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    user.otp = otp;
-    user.otpExpiry = Date.now() + 10 * 60 * 1000;
-    await user.save();
-    await emailHelper("otp.html", user.email, { name: user.name, otp });
-    res.send({ success: true, message: "OTP sent to your email" });
-  } catch (error) {
-    res.status(400);
-    next(error);
-  }
-};
-
-const login2faVerify = async (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
-    const user = await userModel.findOne({ email });
-    if (!user) return res.send({ success: false, message: "User not found" });
-    if (!user.otp || !user.otpExpiry) {
-      return res.send({ success: false, message: "OTP not initiated" });
-    }
-    if (Date.now() > user.otpExpiry) {
-      user.otp = undefined;
-      user.otpExpiry = undefined;
-      await user.save();
-      return res.send({ success: false, message: "OTP expired" });
-    }
-    if (String(user.otp) !== String(otp)) {
-      return res.send({ success: false, message: "Invalid OTP" });
-    }
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    await user.save();
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.SECRET_KEY,
-      { expiresIn: "1d" }
-    );
-    res.cookie("bms_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-      path: "/",
-    });
-    res.send({ success: true, message: "2FA verification successful", data: token });
-  } catch (error) {
-    res.status(400);
-    next(error);
-  }
-};
 
 module.exports = {
   registerUser,
@@ -257,6 +195,4 @@ module.exports = {
   forgetPassword,
   resetPassword,
   logoutUser,
-  login2faInit,
-  login2faVerify,
 };
