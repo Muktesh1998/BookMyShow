@@ -3,13 +3,16 @@ const fs = require("fs");
 const path = require("path");
 
 const transport = nodemailer.createTransport({
-  service: "gmail",
-  port: 587,
-  secure: false,
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 20000,
 });
 
 function replaceContent(content, metaData) {
@@ -29,6 +32,7 @@ async function emailHelper(templateName, receiverEmail, metaData) {
       subject: "Mail from scaler bookmyshow",
       html: content,
     };
+    await transport.verify();
     await transport.sendMail(emailDetails);
     console.log("email sent");
   } catch (err) {
