@@ -13,6 +13,7 @@ const { validateJWTToken } = require("./middlewares/authorizationMiddleware");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const path = require("path")
+const swaggerRouter = require("./swagger");
 
 
 const apiLimited = rateLimit({
@@ -23,6 +24,8 @@ const apiLimited = rateLimit({
 
 const clientBuildPath = path.join(__dirname, "../Client/dist");
 app.use(express.static(clientBuildPath));
+// Serve static assets from Server/public (e.g., swagger.css)
+app.use(express.static(path.join(__dirname, "public")));
 
 connectDB();
 app.use(helmet());
@@ -33,10 +36,10 @@ app.use(
     directives: {
       defaultSrc: ["'self'"], // Allows resources from the same origin (https://bookmyshowjune2024.onrender.com)
       scriptSrc: ["'self'"], // Allows scripts from your own domain
-      styleSrc: ["'self'", "'unsafe-inline'"], // Allows styles from your domain and inline styles (if needed)
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"], // Allow Google Fonts CSS
       imgSrc: ["'self'", "data:"], // Allows images from your domain and base64-encoded images
       connectSrc: ["'self'"], // Allows AJAX requests to your own domain
-      fontSrc: ["'self'"], // Allows fonts from your domain
+      fontSrc: ["'self'", "https://fonts.gstatic.com"], // Allow Google Fonts files
       objectSrc: ["'none'"], // Disallows <object>, <embed>, and <applet> elements
       upgradeInsecureRequests: [], // Automatically upgrades HTTP requests to HTTPS
     },
@@ -51,6 +54,8 @@ app.use("/bms/v1/movies", validateJWTToken, movieRoute);
 app.use("/bms/v1/theatres", validateJWTToken, theatreRoute);
 app.use("/bms/v1/shows", validateJWTToken, showRoute);
 app.use("/bms/v1/bookings", validateJWTToken, bookingRoute);
+// Swagger docs
+app.use("/bms/docs", swaggerRouter);
 
 app.use(errorHandler);
 app.listen(process.env.PORT, () => {

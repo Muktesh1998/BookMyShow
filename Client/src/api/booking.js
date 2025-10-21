@@ -42,3 +42,15 @@ export const makePaymentAndBookShow = async (payload) => {
     return err.response;
   }
 };
+
+export const createPaymentIntent = async (payload) => {
+  try {
+    const response = await axiosInstance.post(
+      "/bookings/createPaymentIntent",
+      payload
+    );
+    return response.data;
+  } catch (err) {
+    return err.response;
+  }
+};

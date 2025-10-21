@@ -5,8 +5,75 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { message, Card, Row, Col, Button } from "antd";
 import moment from "moment";
-import StripeCheckout from "react-stripe-checkout";
-import { bookShow, makePayment, makePaymentAndBookShow } from "../api/booking";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { bookShow, makePayment, makePaymentAndBookShow, createPaymentIntent } from "../api/booking";
+
+const stripePromise = loadStripe(
+  "pk_test_51SKMtgPM9ciN7MWVWnnWfQFwgH8TDr9IB6o1GKDgDaopU6O1z4Es00I1Zm7bOEoAeJ1QjGFucH8QykmDzEYGw3ex00iDNSYjDK"
+);
+
+const CheckoutForm = ({ show, selectedSeats, onSuccess, user, params, dispatch, navigate }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const handlePay = async () => {
+    if (!stripe || !elements) return;
+    try {
+      dispatch(showLoading());
+      const amountInPaise = selectedSeats.length * show.ticketPrice * 100;
+      const intentRes = await createPaymentIntent({
+        amount: amountInPaise,
+        currency: "inr",
+        receipt_email: user?.email,
+      });
+      if (!intentRes?.success) {
+        message.error(intentRes?.message || "Failed to create payment intent");
+        return;
+      }
+      const clientSecret = intentRes.data.clientSecret;
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+        },
+      });
+      if (error) {
+        message.error(error.message || "Payment failed");
+        return;
+      }
+      if (paymentIntent && paymentIntent.status === "succeeded") {
+        const bookingRes = await bookShow({
+          show: params.id,
+          transactionId: paymentIntent.id,
+          seats: selectedSeats,
+          user: user._id,
+        });
+        if (bookingRes.success) {
+          message.success("Show Booking done!");
+          onSuccess();
+          navigate("/profile");
+        } else {
+          message.warning(bookingRes.message || "Booking failed after payment");
+        }
+      }
+    } catch (err) {
+      message.error(err?.message || "Something went wrong");
+    } finally {
+      dispatch(hideLoading());
+    }
+  };
+
+  return (
+    <div className="max-width-600 mx-auto">
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 12 }}>
+        <CardElement options={{ hidePostalCode: true }} />
+      </div>
+      <Button type="primary" shape="round" size="large" block disabled={!stripe} onClick={handlePay}>
+        Pay Now
+      </Button>
+    </div>
+  );
+};
 
 const BookShow = () => {
   const params = useParams();
@@ -78,28 +145,7 @@ const BookShow = () => {
   //   }
   // };
 
-  const bookAndPay = async (token) => {
-    try {
-      dispatch(showLoading());
-      const response = await makePaymentAndBookShow({
-        token,
-        amount: selectedSeats.length * show.ticketPrice * 85,
-        show: params.id,
-        seats: selectedSeats,
-        user: user._id,
-      });
-      if (response.success) {
-        message.success("Show Booking done!");
-        navigate("/profile");
-      } else {
-        message.warning(response.message);
-      }
-    } catch (err) {
-      message.error(err);
-    } finally {
-      dispatch(hideLoading());
-    }
-  };
+  const bookAndPay = async () => {};
 
   const getSeats = () => {
     let columns = 12;
@@ -200,18 +246,17 @@ const BookShow = () => {
               {getSeats()}
 
               {selectedSeats.length > 0 && (
-                <StripeCheckout
-                  token={bookAndPay}
-                  amount={selectedSeats.length * show.ticketPrice * 80}
-                  billingAddress
-                  stripeKey="pk_test_51S1OYzARWVYZA1YLdmUKsLvdF7F25Q5SgnwOKSvcMBwVtAvYx67J2QeLr2sLHrbAk8YEi3tq8COWfV1ukXzxXfHi00nXcpLfRC"
-                >
-                  <div className="max-width-600 mx-auto">
-                    <Button type="primary" shape="round" size="large" block>
-                      Pay Now
-                    </Button>
-                  </div>
-                </StripeCheckout>
+                <Elements stripe={stripePromise}>
+                  <CheckoutForm
+                    show={show}
+                    selectedSeats={selectedSeats}
+                    user={user}
+                    params={params}
+                    dispatch={dispatch}
+                    navigate={navigate}
+                    onSuccess={() => setSelectedSeats([])}
+                  />
+                </Elements>
               )}
             </Card>
           </Col>

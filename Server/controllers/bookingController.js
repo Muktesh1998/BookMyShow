@@ -4,6 +4,31 @@ const Booking = require("../models/bookingSchema");
 const Show = require("../models/showSchema");
 const emailHelper = require("../utils/emailHelper");
 
+// Create a PaymentIntent and return client secret for client-side confirmation
+const createPaymentIntent = async (req, res, next) => {
+  try {
+    const { amount, currency = "inr", receipt_email } = req.body;
+
+    const intAmount = Math.max(1, parseInt(amount, 10));
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: intAmount,
+      currency,
+      automatic_payment_methods: { enabled: true },
+      receipt_email: receipt_email,
+      description: "BookMyShow payment intent",
+    });
+
+    res.send({
+      success: true,
+      message: "PaymentIntent created",
+      data: { clientSecret: paymentIntent.client_secret, id: paymentIntent.id },
+    });
+  } catch (error) {
+    res.status(400);
+    next(error);
+  }
+};
+
 const makePayment = async (req, res, next) => {
   try {
     const { token, amount } = req.body;
@@ -217,7 +242,7 @@ const makePaymentAndBookShow = async (req, res, next) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    if (err.message.includes("One or more seats are already booked.")) {
+    if (error.message && error.message.includes("One or more seats are already booked.")) {
       // start the refund process;
       // await stripe.refunds.create({payment_intent: paymentIntent._id});
     }
@@ -231,4 +256,5 @@ module.exports = {
   makePayment,
   getAllBookings,
   makePaymentAndBookShow,
+  createPaymentIntent,
 };

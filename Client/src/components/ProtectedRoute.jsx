@@ -101,7 +101,7 @@ const ProtectedRoute = ({ children }) => {
 
   return (
     <>
-      <Layout>
+      <Layout style={{ minHeight: "100vh" }}>
         <Header
           className="d-flex justify-content-between"
           style={{
@@ -117,17 +117,14 @@ const ProtectedRoute = ({ children }) => {
           </h3>
           <Menu theme="dark" mode="horizontal" items={navItems} />
         </Header>
-        <Content style={{ height: "100%" }}>{children}</Content>
+        <Content style={{ padding: "16px", flex: "1 0 auto" }}>{children}</Content>
         {/* ToDo */}
         <Footer
           style={{
             textAlign: "center",
             background: "#001529",
             color: "white",
-            position: "absolute",
-            bottom: 0,
-            zIndex: 1,
-            width: "100%",
+            marginTop: "auto",
           }}
         >
           BookMyShow ©{new Date().getFullYear()} Created by Scaler
