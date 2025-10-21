@@ -16,9 +16,16 @@ const path = require("path")
 const swaggerRouter = require("./swagger");
 
 
+// Trust the first proxy (Render / reverse proxies)
+app.set("trust proxy", 1);
+
 const apiLimited = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Avoid strict X-Forwarded-For parsing by using Express's computed IP
+  keyGenerator: (req) => req.ip,
   message: "Too Many Request from this IP, please try again after 15 mins",
 });
 
