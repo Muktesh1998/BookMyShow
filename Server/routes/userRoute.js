@@ -5,8 +5,6 @@ const {
   forgetPassword,
   resetPassword,
   logoutUser,
-  login2faInit,
-  login2faVerify,
 } = require("../controllers/UserController");
 const { validateJWTToken } = require("../middlewares/authorizationMiddleware");
 
@@ -73,8 +71,6 @@ router.post("/register", registerUser);
  */
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
-router.post("/login2fa-init", login2faInit);
-router.post("/login2fa-verify", login2faVerify);
 /**
  * @openapi
  * /bms/v1/users/getCurrentUser:
