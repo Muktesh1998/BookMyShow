@@ -18,6 +18,24 @@ export const LoginUser = async (values) => {
   }
 };
 
+export const Login2faInit = async (values) => {
+  try {
+    const response = await axiosInstance.post("/users/login2fa-init", values);
+    return response.data;
+  } catch (error) {
+    return error;
+  }
+};
+
+export const Login2faVerify = async (values) => {
+  try {
+    const response = await axiosInstance.post("/users/login2fa-verify", values);
+    return response.data;
+  } catch (error) {
+    return error;
+  }
+};
+
 export const GetCurrentUser = async () => {
   try {
     const response = await axiosInstance.get("/users/getCurrentUser");
